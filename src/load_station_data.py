@@ -3,7 +3,7 @@ import csv
 
 STATIONS_CSV_URL = "https://www1.ncdc.noaa.gov/pub/data/ghcn/daily/ghcnd-stations.csv"
 
-def load_station_data() -> list:
+def load_station_data() -> list | None:
     all_stations: list = []
 
     """
@@ -31,7 +31,7 @@ def load_station_data() -> list:
     except requests.RequestException as e:
         print(f"Fehler beim Download der CSV: {e}")
         # Falls nicht verfügbar bleibt ALL_STATIONS leer
-        return
+        return None
 
     lines = r.text.splitlines()
     reader = csv.reader(lines)

@@ -1,14 +1,16 @@
-from src import Station
-from contextlib import asynccontextmanager
+from src import Station, get_stations_in_radius
 from src import load_station_data
-from fastapi import FastAPI
+from contextlib import asynccontextmanager
+from fastapi import FastAPI, Query
 from fastapi.middleware.cors import CORSMiddleware
+from typing import List
 
 ALL_STATIONS: list[Station] = []
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    load_station_data()
+    global ALL_STATIONS
+    ALL_STATIONS = load_station_data()
     yield
 app = FastAPI(lifespan=lifespan)
 
@@ -24,6 +26,26 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["*"],      # Erlaubt alle HTTP-Methoden (GET, POST, PUT, DELETE, etc.)
     allow_headers=["*"], )    # Erlaubt alle Header
+
+
+@app.get("/stations-query", response_model=List[Station])
+
+def fetch_stations_query(
+    latitude: float = Query(...),
+    longitude: float = Query(...),
+    radius: float = Query(...),
+    count: int = Query(...)
+):
+    """
+    Beispiel:
+      GET /stations-query?latitude=52.52&longitude=13.405&radius=50&count=5
+    """
+
+    if not ALL_STATIONS:
+        return []
+
+    stations = get_stations_in_radius(ALL_STATIONS, latitude, longitude, radius, count)
+    return stations
 
 
 if __name__ == "__main__":
