@@ -1,0 +1,6 @@
+# Test your FastAPI endpoints
+
+GET http://127.0.0.1:8000/stations-query?latitude=52.52&longitude=13.405&radius=50000&count=10
+Accept: application/json
+
+###
