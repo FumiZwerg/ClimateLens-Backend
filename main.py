@@ -1,36 +1,36 @@
-from src import Station, get_stations_in_radius
-from src import load_station_data
-from contextlib import asynccontextmanager
 from fastapi import FastAPI, Query
 from fastapi.middleware.cors import CORSMiddleware
-from typing import List
+from contextlib import asynccontextmanager
+from src import load_station_data, Station, get_station_data_from_ghcn
+from src import fetch_stations_query
+from typing import List, Optional
 
-ALL_STATIONS: list[Station] = []
+ALL_STATIONS: list = []
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     global ALL_STATIONS
     ALL_STATIONS = load_station_data()
     yield
+
 app = FastAPI(lifespan=lifespan)
 
 origins = [
-    "http://localhost:4174",  # Erlaubt spezifischen Port für lokale Entwicklung
+    "http://localhost:4174",
     "http://127.0.0.1:4174",
-    "*"                       # Falls alle Domains erlaubt sein sollen (Entwicklung), aber unsicher für Produktion
+    "*"
 ]
 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
     allow_credentials=True,
-    allow_methods=["*"],      # Erlaubt alle HTTP-Methoden (GET, POST, PUT, DELETE, etc.)
-    allow_headers=["*"], )    # Erlaubt alle Header
-
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 @app.get("/stations-query", response_model=List[Station])
-
-def fetch_stations_query(
+def fetch_stations_query_endpoint(
     latitude: float = Query(...),
     longitude: float = Query(...),
     radius: float = Query(...),
@@ -40,12 +40,25 @@ def fetch_stations_query(
     Beispiel:
       GET /stations-query?latitude=52.52&longitude=13.405&radius=50&count=5
     """
+    return fetch_stations_query(latitude, longitude, radius, count, ALL_STATIONS)
 
-    if not ALL_STATIONS:
-        return []
-
-    stations = get_stations_in_radius(ALL_STATIONS, latitude, longitude, radius, count)
-    return stations
+@app.get("/station/data")
+def fetch_station_data(
+    stationId: str = Query(...),
+    startYear: Optional[str] = Query(None),
+    endYear: Optional[str] = Query(None)
+):
+    """
+    GET-Endpoint:
+    Bsp:
+      GET -
+    """
+    data = get_station_data_from_ghcn(
+        station_id=stationId,
+        start_year=startYear,
+        end_year=endYear
+    )
+    return data
 
 
 if __name__ == "__main__":

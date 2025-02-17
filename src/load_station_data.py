@@ -30,8 +30,7 @@ def load_station_data() -> list | None:
         r.raise_for_status()
     except requests.RequestException as e:
         print(f"Fehler beim Download der CSV: {e}")
-        # Falls nicht verfügbar bleibt ALL_STATIONS leer
-        return None
+        raise
 
     lines = r.text.splitlines()
     reader = csv.reader(lines)
