@@ -1,9 +1,9 @@
 from fastapi import FastAPI, Query
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
-from src import load_station_data, Station
+from src import load_station_data, Station, get_station_data_from_ghcn
 from src import fetch_stations_query
-from typing import List
+from typing import List, Optional
 
 ALL_STATIONS: list = []
 
@@ -41,6 +41,24 @@ def fetch_stations_query_endpoint(
       GET /stations-query?latitude=52.52&longitude=13.405&radius=50&count=5
     """
     return fetch_stations_query(latitude, longitude, radius, count, ALL_STATIONS)
+
+@app.get("/station/data")
+def fetch_station_data(
+    stationId: str = Query(...),
+    startYear: Optional[str] = Query(None),
+    endYear: Optional[str] = Query(None)
+):
+    """
+    GET-Endpoint:
+    Bsp:
+      GET -
+    """
+    data = get_station_data_from_ghcn(
+        station_id=stationId,
+        start_year=startYear,
+        end_year=endYear
+    )
+    return data
 
 
 if __name__ == "__main__":
