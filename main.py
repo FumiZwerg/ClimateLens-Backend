@@ -34,13 +34,30 @@ def fetch_stations_query_endpoint(
     latitude: float = Query(...),
     longitude: float = Query(...),
     radius: float = Query(...),
-    count: int = Query(...)
+    count: int = Query(...),
+    startYear: Optional[int] = Query(None),
+    endYear: Optional[int] = Query(None)
 ):
     """
     Beispiel:
-      GET /stations-query?latitude=52.52&longitude=13.405&radius=50&count=5
+      GET /stations-query?latitude=52.52&longitude=13.405&radius=50&count=5&startYear=1980&endYear=2020
     """
-    return fetch_stations_query(latitude, longitude, radius, count, ALL_STATIONS)
+    filtered_stations = ALL_STATIONS
+    if startYear is not None or endYear is not None:
+        filtered = []
+        for st in ALL_STATIONS:
+            inv_start = st.get("inventory_start_year")
+            inv_end = st.get("inventory_end_year")
+            if startYear is not None:
+                if inv_start is None or inv_start > startYear:
+                    continue
+            if endYear is not None:
+                if inv_end is None or inv_end < endYear:
+                    continue
+            filtered.append(st)
+        filtered_stations = filtered
+
+    return fetch_stations_query(latitude, longitude, radius, count, filtered_stations)
 
 @app.get("/station/data")
 def fetch_station_data(
@@ -50,15 +67,24 @@ def fetch_station_data(
 ):
     """
     GET-Endpoint:
-    Bsp:
-      GET -
+    Beispiel:
+      GET /station/data?stationId=USW00094846&startYear=2000&endYear=2020
     """
+    # Ermittle anhand der ALL_STATIONS den Latitude-Wert der Station
+    latitude = None
+    for st in ALL_STATIONS:
+        if st["id"] == stationId:
+            latitude = st["latitude"]
+            break
+
     data = get_station_data_from_ghcn(
         station_id=stationId,
         start_year=startYear,
-        end_year=endYear
+        end_year=endYear,
+        latitude=latitude
     )
     return data
+
 
 
 if __name__ == "__main__":
