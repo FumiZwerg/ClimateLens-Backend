@@ -30,3 +30,4 @@ def test_api_get_station_data_south():
 def test_api_invalid_station():
     response = requests.get(f"{BASE_URL}/station/data?stationId=INVALID_ID&startYear=2000&endYear=2010")
     assert response.status_code == 404, "Sollte 404 für ungültige Station zurückgeben"
+

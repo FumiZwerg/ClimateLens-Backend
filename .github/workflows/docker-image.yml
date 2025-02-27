@@ -54,7 +54,7 @@ jobs:
 
       - name: Run Unit Tests with Coverage
         run: |
-          pytest --cov=src --cov-report=term-missing test_back_end.py
+          pytest -v
 
       - name: Test Coverage Report
         run: |
