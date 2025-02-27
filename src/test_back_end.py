@@ -4,9 +4,6 @@ from fastapi import HTTPException
 from unittest.mock import patch
 from src import fetch_stations_query, get_stations_in_radius, get_station_data_from_ghcn
 from src import load_station_data, load_station_inventory
-import sys
-import os
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 # Erstellt Testdaten für die Stationen
 @fixture
