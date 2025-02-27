@@ -89,4 +89,4 @@ jobs:
           curl --fail http://localhost:8000/docs || (echo "API not responding" && exit 1)
 
       - name: Run API Tests (Docker)
-        run: pytest api_tests_backend.py
+        run: pytest test_api_backend.py
