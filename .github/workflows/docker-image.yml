@@ -67,7 +67,7 @@ jobs:
           curl --fail http://localhost:8000/docs || (echo "API not responding" && exit 1)
 
       - name: Run API Tests (Docker)
-        run: pytest test_api_backend.py
+        run: pytest src/test_api_backend.py
 
       - name: Push Docker Image to GHCR
         run: docker push ghcr.io/fumizwerg/climatelens-backend:latest
