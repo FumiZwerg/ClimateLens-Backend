@@ -34,10 +34,6 @@ jobs:
         run: |
           pytest -v src/test_back_end.py
 
-      - name: Test Coverage Report
-        run: |
-          pytest -v src/test_api_backend.py
-
   test_build_and_push:
     name: Test Docker Image and Push to GHCR
     runs-on: ubuntu-latest
@@ -67,7 +63,7 @@ jobs:
 
       - name: Wait for Backend to be available (Docker)
         run: |
-          sleep 10  # Wartezeit für den Container-Start
+          sleep 20  # Wartezeit für den Container-Start
           curl --fail http://localhost:8000/docs || (echo "API not responding" && exit 1)
 
       - name: Run API Tests (Docker)
