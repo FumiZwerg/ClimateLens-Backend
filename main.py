@@ -38,10 +38,12 @@ def fetch_stations_query_endpoint(
     startYear: Optional[int] = Query(None),
     endYear: Optional[int] = Query(None)
 ):
+
     """
     Beispiel:
       GET /stations-query?latitude=52.52&longitude=13.405&radius=50&count=5&startYear=1980&endYear=2020
     """
+
     filtered_stations = ALL_STATIONS
     if startYear is not None or endYear is not None:
         filtered = []
@@ -65,11 +67,13 @@ def fetch_station_data(
     startYear: Optional[str] = Query(None),
     endYear: Optional[str] = Query(None)
 ):
+
     """
     GET-Endpoint:
     Beispiel:
       GET /station/data?stationId=USW00094846&startYear=2000&endYear=2020
     """
+
     # Ermittle anhand der ALL_STATIONS den Latitude-Wert der Station
     latitude = None
     for st in ALL_STATIONS:
