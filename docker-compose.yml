@@ -1,0 +1,10 @@
+services:
+  app:
+    # build: .
+    image: ghcr.io/fumizwerg/climatelens-backend:latest
+    container_name: backend
+    ports:
+      - "8000:8000"
+    environment:
+      - PYTHONUNBUFFERED=1
+    restart: always
