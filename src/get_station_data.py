@@ -26,6 +26,7 @@ def get_station_data_from_ghcn(station_id: str, start_year: Optional[str], end_y
 
     sy = int(start_year) if start_year else 0
     ey = int(end_year) if end_year else 9999
+    tracked_years: set = set()
 
     year_data = {}
 
@@ -85,6 +86,7 @@ def get_station_data_from_ghcn(station_id: str, start_year: Optional[str], end_y
         original_year = int(line[11:15])
         month = int(line[15:17])
         element = line[17:21]
+        tracked_years.add(original_year)
 
         if element not in ["TMIN", "TMAX"]:
             continue
@@ -114,18 +116,40 @@ def get_station_data_from_ghcn(station_id: str, start_year: Optional[str], end_y
                 year_data[effective_year]["annual"]["tmax_vals"].append(val)
                 year_data[effective_year][season]["tmax_vals"].append(val)
 
+    for e in range(sy, ey):
+        if e not in tracked_years:
+            ensure_year_structure(e)
+
+            year_data[int(e)]["annual"]["tmin_vals"].append(None)
+            year_data[int(e)]["spring"]["tmin_vals"].append(None)
+            year_data[int(e)]["summer"]["tmin_vals"].append(None)
+            year_data[int(e)]["autumn"]["tmin_vals"].append(None)
+            year_data[int(e)]["winter"]["tmin_vals"].append(None)
+
+            year_data[int(e)]["annual"]["tmax_vals"].append(None)
+            year_data[int(e)]["spring"]["tmax_vals"].append(None)
+            year_data[int(e)]["summer"]["tmax_vals"].append(None)
+            year_data[int(e)]["autumn"]["tmax_vals"].append(None)
+            year_data[int(e)]["winter"]["tmax_vals"].append(None)
+
     output_data = []
     all_years = sorted(year_data.keys())
 
     def calc_min_max(vals: dict) -> dict:
-        if vals["tmin_vals"]:
-            min_val = round(sum(vals["tmin_vals"]) / len(vals["tmin_vals"]), 1)
-        else:
+        try:
+            if vals["tmin_vals"] and vals["tmin_vals"] is not None:
+                min_val = round(sum(vals["tmin_vals"]) / len(vals["tmin_vals"]), 1)
+            else:
+                min_val = None
+        except:
             min_val = None
 
-        if vals["tmax_vals"]:
-            max_val = round(sum(vals["tmax_vals"]) / len(vals["tmax_vals"]), 1)
-        else:
+        try:
+            if vals["tmax_vals"] and vals["tmin_vals"] is not None:
+                max_val = round(sum(vals["tmax_vals"]) / len(vals["tmax_vals"]), 1)
+            else:
+                max_val = None
+        except:
             max_val = None
 
         return {"min": min_val, "max": max_val}
