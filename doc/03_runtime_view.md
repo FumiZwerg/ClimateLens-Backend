@@ -1,0 +1,7 @@
+# Sequenzdiagramm
+
+Beim Start der Anwendung ruft der FastAPI-Server die Funktion [load_station_data()](../src/load_station_data.py) über den Loader (Lifespan) auf. Der Loader fordert anschließend direkt vom NOAA-Server die Datei „ghcnd-stations.csv“ an und erhält dafür die entsprechenden CSV-Daten. Danach wird über den Loader auch die Datei „ghcnd-inventory.txt“ vom NOAA-Server abgerufen. Beide Datensätze werden intern geparst und zu einer vollständigen Stationsliste (ALL_STATIONS) zusammengeführt, die anschließend an den Server zurückgemeldet wird.
+
+Wird eine Anfrage an den Endpunkt [/stations-query](../main.py) gestellt – mit Parametern wie geografischer Breite, Länge, Radius, Anzahl sowie einem definierten Zeitraum – filtert der Server die ALL_STATIONS-Daten nach dem Zeitfilter und berechnet mithilfe der Haversine-Formel die Entfernungen, um so eine gefilterte Liste der Stationen zurückzugeben. Bei einer Anfrage an [/station/data](../main.py) wird anhand der Stations-ID zunächst die entsprechende Station in ALL_STATIONS gesucht, um die benötigte Latitude zu ermitteln. Anschließend beauftragt der Server den Data Aggregator, der vom NOAA-Server eine .dly-Datei für die betreffende Station anfordert. Nach Erhalt der Daten parst der Aggregator diese zeilenweise, filtert die relevanten TMIN- und TMAX-Werte, bestimmt die jeweilige Saison und aggregiert die Wetterdaten, bevor sie schlussendlich an den Server und von dort an den Client zurückgesendet werden.
+
+![Sequenzdiagramm](../doc/img/Sequenzdiagramm.png)
