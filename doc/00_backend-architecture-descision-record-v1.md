@@ -7,7 +7,7 @@
 Überholt
 
 ## Kontext
-Das Team hat bereits umfangreiche Erfahrung mit Python und benötigt eine schnelle, einfache Lösung. Python bietet mit Django und Django REST Framework eine solide Grundlage für die schnelle Entwicklung von REST-APIs. Die Entscheidung für Python wurde auch getroffen, weil das Team wenig Erfahrung mit JavaScript hat, was zusätzlich längerfristige Einarbeitungszeit erfordert hätte.
+Das Team hat bereits umfangreiche Erfahrung mit Python und benötigt eine schnelle, einfache Lösung. Python bietet mit Django und Django REST Framework eine solide Grundlage für die schnelle Entwicklung von REST-APIs. Die Entscheidung für Python wurde auch getroffen, weil das Team wenig Erfahrung mit JavaScript hat, was eine längere Einarbeitungszeit erfordert hätte.
 
 ## Entscheidung
 Es wurde entschieden, Python zusammen mit Django und Django REST Framework für die Backend-Entwicklung zu verwenden. Die Entscheidung wurde aufgrund der bestehenden Python-Erfahrung im Team sowie der breiten Verfügbarkeit von Bibliotheken und der guten Dokumentation getroffen.
