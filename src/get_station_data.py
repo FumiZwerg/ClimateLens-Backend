@@ -7,7 +7,8 @@ def get_station_data_from_ghcn(station_id: str, start_year: Optional[str], end_y
     Lädt GHCN-Daily-Daten (TMIN und TMAX) vom NOAA-Server für die gegebene station_id,
     aggregiert sie nach Jahr und Jahreszeit und gibt eine Struktur zurück,
     die Mittelwerte (min/max) enthält.
-    Berücksichtigt dabei den Zeitraum (start_year/end_year) sowie die unterschiedliche
+    Für den "Annual"-Fall werden die Daten vom 01.01. bis 31.12. des Kalenderjahres berechnet.
+    Es wird der Zeitraum (start_year/end_year) berücksichtigt sowie die unterschiedliche
     Jahreszeiten-Zuordnung für Nord- und Südhalbkugel (bei Übergabe von latitude).
     """
     ghcn_url = f"https://www1.ncdc.noaa.gov/pub/data/ghcn/daily/all/{station_id}.dly"
@@ -26,18 +27,26 @@ def get_station_data_from_ghcn(station_id: str, start_year: Optional[str], end_y
 
     sy = int(start_year) if start_year else 0
     ey = int(end_year) if end_year else 9999
-    tracked_years: set = set()
 
-    year_data = {}
+    # Zwei separate Dictionaries: eins für die Annual-Aggregation (Kalenderjahr) und
+    # eins für die saisonale Aggregation (effektives Jahr, ggf. verschoben)
+    annual_data = {}    # Schlüssel: original_year
+    seasonal_data = {}  # Schlüssel: effective_year
 
-    def ensure_year_structure(y: int):
-        if y not in year_data:
-            year_data[y] = {
-                "annual":  {"tmin_vals": [], "tmax_vals": []},
-                "spring":  {"tmin_vals": [], "tmax_vals": []},
-                "summer":  {"tmin_vals": [], "tmax_vals": []},
-                "autumn":  {"tmin_vals": [], "tmax_vals": []},
-                "winter":  {"tmin_vals": [], "tmax_vals": []},
+    def ensure_annual_structure(y: int):
+        if y not in annual_data:
+            annual_data[y] = {
+                "tmin_vals": [],
+                "tmax_vals": [],
+            }
+
+    def ensure_seasonal_structure(y: int):
+        if y not in seasonal_data:
+            seasonal_data[y] = {
+                "spring": {"tmin_vals": [], "tmax_vals": []},
+                "summer": {"tmin_vals": [], "tmax_vals": []},
+                "autumn": {"tmin_vals": [], "tmax_vals": []},
+                "winter": {"tmin_vals": [], "tmax_vals": []},
             }
 
     def get_seasons(year: int, month: int) -> tuple[str, int]:
@@ -79,6 +88,13 @@ def get_station_data_from_ghcn(station_id: str, start_year: Optional[str], end_y
             else:
                 return "autumn", year
 
+    def get_annual_year(year: int, month: int) -> int:
+        """
+        Bestimmt das Kalenderjahr für den "Annual"-Fall, unabhängig von der Jahreszeitenzuordnung.
+        Für Annual wird immer das originale Jahr verwendet.
+        """
+        return year
+
     for line in lines:
         if len(line) < 269:
             continue
@@ -86,16 +102,17 @@ def get_station_data_from_ghcn(station_id: str, start_year: Optional[str], end_y
         original_year = int(line[11:15])
         month = int(line[15:17])
         element = line[17:21]
-        tracked_years.add(original_year)
 
         if element not in ["TMIN", "TMAX"]:
             continue
 
+        # Für Annual immer das originale Jahr; für Season die verschobene Zuordnung
+        annual_year = get_annual_year(original_year, month)
         season, effective_year = get_seasons(original_year, month)
-        if not (sy <= effective_year <= ey):
-            continue
 
-        ensure_year_structure(effective_year)
+        # Prüfe, ob die Daten in den jeweiligen Bereich fallen
+        annual_in_range = sy <= annual_year <= ey
+        seasonal_in_range = sy <= effective_year <= ey
 
         for day_idx in range(31):
             offset = 21 + day_idx * 8
@@ -109,59 +126,61 @@ def get_station_data_from_ghcn(station_id: str, start_year: Optional[str], end_y
             except ValueError:
                 continue
 
-            if element == "TMIN":
-                year_data[effective_year]["annual"]["tmin_vals"].append(val)
-                year_data[effective_year][season]["tmin_vals"].append(val)
-            elif element == "TMAX":
-                year_data[effective_year]["annual"]["tmax_vals"].append(val)
-                year_data[effective_year][season]["tmax_vals"].append(val)
+            if annual_in_range:
+                ensure_annual_structure(annual_year)
+                if element == "TMIN":
+                    annual_data[annual_year]["tmin_vals"].append(val)
+                elif element == "TMAX":
+                    annual_data[annual_year]["tmax_vals"].append(val)
 
-    for e in range(sy, ey):
-        if e not in tracked_years:
-            ensure_year_structure(e)
+            if seasonal_in_range:
+                ensure_seasonal_structure(effective_year)
+                if element == "TMIN":
+                    seasonal_data[effective_year][season]["tmin_vals"].append(val)
+                elif element == "TMAX":
+                    seasonal_data[effective_year][season]["tmax_vals"].append(val)
 
-            year_data[int(e)]["annual"]["tmin_vals"].append(None)
-            year_data[int(e)]["spring"]["tmin_vals"].append(None)
-            year_data[int(e)]["summer"]["tmin_vals"].append(None)
-            year_data[int(e)]["autumn"]["tmin_vals"].append(None)
-            year_data[int(e)]["winter"]["tmin_vals"].append(None)
-
-            year_data[int(e)]["annual"]["tmax_vals"].append(None)
-            year_data[int(e)]["spring"]["tmax_vals"].append(None)
-            year_data[int(e)]["summer"]["tmax_vals"].append(None)
-            year_data[int(e)]["autumn"]["tmax_vals"].append(None)
-            year_data[int(e)]["winter"]["tmax_vals"].append(None)
-
-    output_data = []
-    all_years = sorted(year_data.keys())
+    # Für jedes Jahr im betrachteten Zeitraum sicherstellen, dass auch Einträge existieren
+    all_years = set(range(sy, ey + 1))
+    for e in all_years:
+        if e not in annual_data:
+            annual_data[e] = {"tmin_vals": [None], "tmax_vals": [None]}
+        if e not in seasonal_data:
+            seasonal_data[e] = {
+                "spring": {"tmin_vals": [None], "tmax_vals": [None]},
+                "summer": {"tmin_vals": [None], "tmax_vals": [None]},
+                "autumn": {"tmin_vals": [None], "tmax_vals": [None]},
+                "winter": {"tmin_vals": [None], "tmax_vals": [None]},
+            }
 
     def calc_min_max(vals: dict) -> dict:
         try:
-            if vals["tmin_vals"] and vals["tmin_vals"] is not None:
+            if vals["tmin_vals"]:
                 min_val = round(sum(vals["tmin_vals"]) / len(vals["tmin_vals"]), 1)
             else:
                 min_val = None
-        except:
+        except Exception:
             min_val = None
 
         try:
-            if vals["tmax_vals"] and vals["tmin_vals"] is not None:
+            if vals["tmax_vals"]:
                 max_val = round(sum(vals["tmax_vals"]) / len(vals["tmax_vals"]), 1)
             else:
                 max_val = None
-        except:
+        except Exception:
             max_val = None
 
         return {"min": min_val, "max": max_val}
 
-    for y in all_years:
+    output_data = []
+    for y in sorted(all_years):
         entry = {
             "year": y,
-            "annual": calc_min_max(year_data[y]["annual"]),
-            "spring": calc_min_max(year_data[y]["spring"]),
-            "summer": calc_min_max(year_data[y]["summer"]),
-            "autumn": calc_min_max(year_data[y]["autumn"]),
-            "winter": calc_min_max(year_data[y]["winter"]),
+            "annual": calc_min_max(annual_data[y]),
+            "spring": calc_min_max(seasonal_data[y]["spring"]),
+            "summer": calc_min_max(seasonal_data[y]["summer"]),
+            "autumn": calc_min_max(seasonal_data[y]["autumn"]),
+            "winter": calc_min_max(seasonal_data[y]["winter"]),
         }
         output_data.append(entry)
 
